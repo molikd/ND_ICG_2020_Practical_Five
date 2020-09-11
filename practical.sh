@@ -31,6 +31,8 @@ for infile in trimmed_fastq/*_1.trim.fastq.gz
 	
 	base=$(basename $infile _1.trim.fastq.gz)
 	echo "basename is $base"
+	
+	#I already made the directories "results/sam", "results/bam", etc
 
 	forward=trimmed_fastq/${base}_1.trim.fastq.gz
 	reverse=trimmed_fastq/${base}_2.trim.fastq.gz
