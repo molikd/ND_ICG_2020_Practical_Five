@@ -14,6 +14,7 @@ fastqc -t 8 untrimmed_fastq/*.gz
 mkdir trimmed_fastq
 
 #Loop over untrimmed files
+echo "Beginning trimming..."
 for f in untrimmed_fastq/*1.fastq.gz; do
 	#Clean up file name
 	trimName=$(echo "$f" | sed 's/1\.fastq\.gz//g')
@@ -26,6 +27,7 @@ for f in untrimmed_fastq/*1.fastq.gz; do
 done
 
 #Create indexed reference
+echo "Indexing reference..."
 ref="ref_genome/ecoli_rel606.fasta"
 bwa index "$ref"
 
@@ -38,11 +40,13 @@ for f in trimmed_fastq/*trimmed_1.fastq.gz; do
 	trimName=$(echo "$f" | sed 's/1\.fastq\.gz//g')
 	fileName=$(basename "$f" trimmed_1.fastq.gz)
 	#Run necessary tools to prepare for variant calling
+	echo "Preparing $fileName for variant calling..."
 	bwa mem -t 8 "$ref" "$file" "$trimName"2.fastq.gz > results/sam/"$fileName"aligned.sam
 	samtools view -@ 8 -S -b results/sam/"$fileName"aligned.sam > results/bam/"$fileName"aligned.bam
 	samtools sort -@ 8 -o results/bam/"$fileName"sorted.bam results/bam/"$fileName"aligned.bam
 	samtools index results/bam/"$fileName"sorted.bam
 	#Begin identifying SNPs
+	echo "Identifying SNPs..."
 	bcftools mpileup --threads 8 -O b -o results/bcf/"$fileName"raw.bcf -f "$ref" results/bam/"$fileName"sorted.bam
 	bcftools call --threads 8 --ploidy 1 -m -v -o results/vcf/"$fileName"variants.vcf results/bcf/"$fileName"raw.bcf 
 	vcfutils.pl varFilter results/vcf/"$fileName"variants.vcf > results/vcf/"$fileName"finalVariants.vcf
