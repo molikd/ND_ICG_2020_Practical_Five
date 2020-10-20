@@ -7,15 +7,18 @@
 #Load necessary module
 module load bio/2.0
 
+#Set input path
+inPath="../Data/backup"
+
 #Run fastqc on all untrimmed files
-fastqc -t 8 untrimmed_fastq/*.gz
+fastqc -t 8 "$inPath"/untrimmed_fastq/*.gz
 
 #Make trimming output directory
 mkdir trimmed_fastq
 
 #Loop over untrimmed files
 echo "Beginning trimming..."
-for f in untrimmed_fastq/*1.fastq.gz; do
+for f in "$inPath"/untrimmed_fastq/*1.fastq.gz; do
 	#Clean up file name
 	trimName=$(echo "$f" | sed 's/1\.fastq\.gz//g')
 	fileName=$(basename "$f" 1.fastq.gz)
@@ -23,12 +26,12 @@ for f in untrimmed_fastq/*1.fastq.gz; do
 	trimmomatic PE -threads 8 "$f" "$trimName"2.fastq.gz \
 		trimmed_fastq/"$fileName"trimmed_1.fastq.gz trimmed_fastq/"$fileName"1.fastq.gz \
 		trimmed_fastq/"$fileName"trimmed_2.fastq.gz trimmed_fastq/"$fileName"2.fastq.gz \
-		SLIDINGWINDOW:4:20 MINLEN:25 ILLUMINACLIP:NexteraPE-PE.fa:2:40:15
+		SLIDINGWINDOW:4:20 MINLEN:25 ILLUMINACLIP:"$inPath"/untrimmed_fastq/NexteraPE-PE.fa:2:40:15
 done
 
 #Create indexed reference
 echo "Indexing reference..."
-ref="ref_genome/ecoli_rel606.fasta"
+ref="$inPath"/ref_genome/ecoli_rel606.fasta
 bwa index "$ref"
 
 #Make output directories
@@ -41,7 +44,7 @@ for f in trimmed_fastq/*trimmed_1.fastq.gz; do
 	fileName=$(basename "$f" trimmed_1.fastq.gz)
 	#Run necessary tools to prepare for variant calling
 	echo "Preparing $fileName for variant calling..."
-	bwa mem -t 8 "$ref" "$file" "$trimName"2.fastq.gz > results/sam/"$fileName"aligned.sam
+	bwa mem -t 8 "$ref" "$f" "$trimName"2.fastq.gz > results/sam/"$fileName"aligned.sam
 	samtools view -@ 8 -S -b results/sam/"$fileName"aligned.sam > results/bam/"$fileName"aligned.bam
 	samtools sort -@ 8 -o results/bam/"$fileName"sorted.bam results/bam/"$fileName"aligned.bam
 	samtools index results/bam/"$fileName"sorted.bam
